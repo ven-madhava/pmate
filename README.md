@@ -60,7 +60,7 @@ python3 eplane_Algos.py --task path --origin a --input "['a','b',4], ['a','j',1]
 ```
 * Output
 ```
-{'j': 1, 'c': 1, 'd': 2, 'b': 4, 'e': 5, 'g': 8, 'f': 10}
+{'j': ['a', 'j'], 'c': ['a', 'c'], 'd': ['a', 'c', 'd'], 'b': ['a', 'b'], 'e': ['a', 'b', 'e'], 'g': ['a', 'c', 'g'], 'f': ['a', 'c', 'd', 'f']}
 ```
 
 
@@ -343,3 +343,4 @@ fcn_UNET_segmentation(
 
 1. Slow Video Playback - A threaded function is required to fix video playback speed in opencv. Couldn't get around to it within specified time.
 2. Pixel Perfect Accuracy - In the segmentation task, pixel perfect accuracy is not achieved yet. However this is possible with further hyper-param iterations & model structures.
+3. I have also added my model training notebook under training_notebooks for your reference.
