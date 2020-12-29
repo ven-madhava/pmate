@@ -3,10 +3,12 @@
 * The two algos - cash flow minimization and shortest path - can be run from eplane_Algos.py
 * The script takes as arguments - 
 
-1. “--task” : “flow” or “path” - for cashflow or shortest path
-2. “--input” : Input format is the same for both the functions. The input relation is a list of lists in format [giver/parent_node, taker/child_node, value]. Example for cash flow - ['p0','p1',1], ['p0','p2',2], ['p1','p2',5], ['p1','p3',1]. While passing this in command line, pass this as a **single string** - "['p0','p1',1], ['p0','p2',2], ['p1','p2',5], ['p1','p3',1]" **or** "['a','b',4], ['a','j',1], ['a','d',3], ['a','c',1], ['b','e',1], ['d','e',8], ['d','g',9], ['d','f',8], ['c','d',1], ['c','j',1], ['c','g',7], ['g','j',2]"
+1. “--task” : “flow” , “path” or “monster” - for cashflow, shortest path or maximum number of monster.
+2. “--input” : This is only for "flow" and "path" function - Input format is the same for both the functions. The input relation is a list of lists in format [giver/parent_node, taker/child_node, value]. Example for cash flow - ['p0','p1',1], ['p0','p2',2], ['p1','p2',5], ['p1','p3',1]. While passing this in command line, pass this as a **single string** - "['p0','p1',1], ['p0','p2',2], ['p1','p2',5], ['p1','p3',1]" **or** "['a','b',4], ['a','j',1], ['a','d',3], ['a','c',1], ['b','e',1], ['d','e',8], ['d','g',9], ['d','f',8], ['c','d',1], ['c','j',1], ['c','g',7], ['g','j',2]"
 
 3. “--origin” : Applicable only for the function shortest path. PLEASE ENSURE origin IS CONNECTED TO ALL OTHER NODES ELSE THIS WILL THROW AN ERROR. 
+4. “--kids_power” : Applicable only for the function monster. This input is a list of powers of kids guns. Example - '[2,12,4,22]'"
+5. “--num_monsters” : Applicable only for the function monster. This is the number of monsters awaiting the kids.
 
 ***Examples***
 
@@ -63,6 +65,14 @@ python3 eplane_Algos.py --task path --origin a --input "['a','b',4], ['a','j',1]
 {'j': ['a', 'j'], 'c': ['a', 'c'], 'd': ['a', 'c', 'd'], 'b': ['a', 'b'], 'e': ['a', 'b', 'e'], 'g': ['a', 'c', 'g'], 'f': ['a', 'c', 'd', 'f']}
 ```
 
+* Running maximum monster function -
+```
+python3 eplane_Algos.py --task monster --kids_power "[9,6,8]" --num_monsters 11
+```
+* Output
+```
+3
+```
 
 
 ## 1. Eplane AI Projects - Usage
