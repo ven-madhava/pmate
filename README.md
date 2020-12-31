@@ -1,6 +1,6 @@
 ## 0. Eplane Algos - Usage
 
-* The two algos - cash flow minimization and shortest path - can be run from eplane_Algos.py
+* The two algos - cash flow minimization, shortest path & maximum monster - can be run from eplane_Algos.py
 * The script takes as arguments - 
 
 1. “--task” : “flow” , “path” or “monster” - for cashflow, shortest path or maximum number of monster.
@@ -80,13 +80,14 @@ python3 eplane_Algos.py --task monster --kids_power "[9,6,8]" --num_monsters 11
 * The two AI projects - facemask detection & semantic segmentation - can be run from eplane_ai.py.
 * The script takes as arguments - 
 
-1. “--task” : “facemask” or “seg” 
+1. “--task” : “facemask”, “seg” or “depth”
 2. “--input_mode” : “image” or “video”
 3. “--file_url” : The url of the image or video to be processed
 
 ***Examples***
 - `python3 eplane.py --task facemask --input_mode video --file_url /Users/venkateshmadhava/Documents/eplane/projects/misc_images_videos/face_mask_video_480.mov>`
 - `python3 eplane.py --task seg --input_mode image --file_url /Users/venkateshmadhava/Documents/eplane/projects/misc_images_videos/154.jpg`
+- `python3 eplane_ai.py --task depth --input_mode image --file_url /Users/venkateshmadhava/Desktop/12.jpg`
 
 * Face mask prediction on images - 
 
@@ -103,6 +104,10 @@ python3 eplane_Algos.py --task monster --kids_power "[9,6,8]" --num_monsters 11
 * Street segmentation prediction on videos - 
 
 ![Image of Street Seg On Video](https://github.com/ven-madhava/eplane/blob/master/for_documentation/seg_video.png)
+
+* Single image depth prediction on images - 
+
+![Image of depth pred on images](https://github.com/ven-madhava/eplane/blob/master/for_documentation/seg_video.png)
 
 
 ## 2. Eplane Projects - package requirements
@@ -349,8 +354,162 @@ fcn_UNET_segmentation(
 ![Image of Street Seg On Video](https://github.com/ven-madhava/eplane/blob/master/for_documentation/seg_image_aug.png)
 
 
+#### 3.3 Single Image Depth Perception
+
+* **Core Problem Statement** - Extract depth information from single camera image.
+
+- The objective is to understand the input image and estimate depth at a pixel level. 
+
+* **Dataset Used** - Kitti vision benchmark depth prediction dataset http://www.cvlibs.net/datasets/kitti/eval_depth.php?benchmark=depth_prediction.
+
+* **Technical Approach** - The input is a single image (either user uploaded or extracted as a frame from a video) which is processed in the following manner.
+
+1. The image is understood to extract depth information and predict "depth" at every pixel. 
+2. The training pipeline consists of image augmentation, training, model output to heatmap conversion.
+3. The model is principally a UNET fully convolutional network that can encode image down to either 1x1 or 15x15 (h,w). 
+4. The decoder then decodes the encoded image and estimates depth at every pixel.
+5. A L1 loss is used for optmization.
+
+* UNET Depth Perception Models - 
+```
+# FCN class copied from image search notebook which worked
+# generator_1_127 latent_dim, line_in_channels, design_in_channels, out_channels return_encoded_latents
+# --------------------------------------------------------
+
+class fcn_UNET_depthperception_15(nn.Module):
+    def __init__(self):
+        super().__init__()
+        
+        # AIMING FOR THIS TO BE A FCNs
+        ##############################
+        # generator with RELU and discrimitor with leaky relu
+        
+         # Initialising N/W here
+        # ---------------------
+        nw_activation_conv = nn.LeakyReLU(0.2) #nn.LeakyReLU(0.2) #nn.ReLU() # nn.ReLU() #nn.ReLU() #nn.LeakyReLU(0.2) # nn.Tanh() nn.Softmax2d()
+        f = 3
+        s = 2
+        dropout_prob = 0.1
+        dropout_node = nn.Dropout2d(p=dropout_prob)
+        self.main_latent_dim = 128
+
+        # 1. image encoder
+        # ----------------
+        # 00.
+        ####
+        conv00_ch = 32
+        ct00 = nn.Conv2d(3,conv00_ch,f,stride = s)
+        cb00 = nn.BatchNorm2d(conv00_ch)
+        ca00 = nw_activation_conv
+        self.cl00 = nn.Sequential(*[ct00,cb00,ca00,dropout_node])
+        # 127
+
+        # 0.
+        ####
+        conv0_ch = 64
+        ct0 = nn.Conv2d(conv00_ch,conv0_ch,f,stride = s)
+        cb0 = nn.BatchNorm2d(conv0_ch)
+        ca0 = nw_activation_conv
+        self.cl0 = nn.Sequential(*[ct0,cb0,ca0,dropout_node])
+        # 63
+        
+        # 1.
+        ####
+        conv1_ch = 128
+        ct1 = nn.Conv2d(conv0_ch,conv1_ch,f,stride = s)
+        #cb1 = nn.BatchNorm2d(conv1_ch)
+        ca1 = nw_activation_conv
+        self.cl1 = nn.Sequential(*[ct1,ca1,dropout_node])
+        # 31
+        
+        # 2.
+        ####
+        conv2_ch = 256
+        ct2 = nn.Conv2d(conv1_ch,conv2_ch,f,stride = s)
+        cb2 = nn.BatchNorm2d(conv2_ch)
+        ca2 = nw_activation_conv
+        self.cl2 = nn.Sequential(*[ct2,cb2,ca2,dropout_node])
+        # 15
+
+        #################################################
+        #################################################
+        #################################################
+
+        # GETTING INTO UPCONS
+        # -------------------
+        # Upconv layer 4
+        ###
+        t4 = nn.ConvTranspose2d(conv2_ch,conv1_ch,f,stride = s)
+        b4 = nn.BatchNorm2d(conv1_ch)
+        a4 = nw_activation_conv
+        self.ul4 = nn.Sequential(*[t4,b4,a4,dropout_node])
+        # 31
+        
+        # Upconv layer 5
+        ###
+        t5 = nn.ConvTranspose2d(conv1_ch*2,conv0_ch,f,stride = s)
+        b5 = nn.BatchNorm2d(conv0_ch)
+        a5 = nw_activation_conv
+        self.ul5 = nn.Sequential(*[t5,b5,a5,dropout_node])
+        # 63
+        
+        
+        # Upconv layer 6
+        ###
+        t6 = nn.ConvTranspose2d(conv0_ch*2,conv00_ch,f,stride = s)
+        b6 = nn.BatchNorm2d(conv00_ch)
+        a6 = nw_activation_conv
+        self.ul6 = nn.Sequential(*[t6,b6,a6,dropout_node])
+        # 63
+        
+
+        # Upconv layer 6
+        # the outputs would be logits
+        ###
+        t7 = nn.ConvTranspose2d(conv00_ch*2,conv00_ch,f,stride = s)
+        b7 = nn.BatchNorm2d(conv00_ch)
+        a7 = nw_activation_conv
+        t7_f = nn.ConvTranspose2d(conv00_ch,1,1,stride = 1)
+        self.ul7 = nn.Sequential(*[t7,b7,a7,t7_f,a7])
+        # 127
+
+    def forward(self, x):
+        
+        # encoding
+        # --------
+        conv00_out = self.cl00(x)
+        conv0_out = self.cl0(conv00_out)
+        conv1_out = self.cl1(conv0_out)
+        conv2_out = self.cl2(conv1_out)
+
+   
+        # straightforward outs
+        # --------------------
+        up4_out = self.ul4(conv2_out)
+        up5_out = self.ul5(torch.cat((up4_out, conv1_out), 1))
+        up6_out = self.ul6(torch.cat((up5_out, conv0_out), 1))
+        up7_out = self.ul7(torch.cat((up6_out, conv00_out), 1))
+        
+        # using torch.exp to expand model prediction
+        ##
+        final_out = torch.exp(up7_out)
+        
+        
+        # final return
+        # ------------
+        return final_out
+```
+
+
+* Street view depth perception examples - 
+
+![Image of depth percpeption 1](https://github.com/ven-madhava/eplane/blob/master/for_documentation/seg_image_aug.png)
+![Image of depth percpeption 2](https://github.com/ven-madhava/eplane/blob/master/for_documentation/seg_image_aug.png)
+![Image of depth percpeption 3](https://github.com/ven-madhava/eplane/blob/master/for_documentation/seg_image_aug.png)
+
+
 ### side notes
 
 1. Slow Video Playback - A threaded function is required to fix video playback speed in opencv. Couldn't get around to it within specified time.
 2. Pixel Perfect Accuracy - In the segmentation task, pixel perfect accuracy is not achieved yet. However this is possible with further hyper-param iterations & model structures.
-3. I have also added my model training notebook under training_notebooks for your reference.
+3. I have also added my model training notebooks under training_notebooks for your reference.
